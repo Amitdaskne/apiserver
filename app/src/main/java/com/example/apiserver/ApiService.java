@@ -15,22 +15,30 @@ public class ApiService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && "STOP".equals(intent.getAction())) {
+            stopEverything();
+            return START_NOT_STICKY;
+        }
+
         createChannel();
         Notification n = new NotificationCompat.Builder(this, "api")
-                .setContentTitle("API Server").setContentText("Running...")
-                .setSmallIcon(android.R.drawable.stat_sys_upload).setOngoing(true).build();
+                .setContentTitle("API Server Active")
+                .setContentText("Tunnel is running...")
+                .setSmallIcon(android.R.drawable.stat_sys_upload)
+                .setOngoing(true)
+                .build();
         if (Build.VERSION.SDK_INT >= 29)
             startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
         else startForeground(1, n);
 
         new Thread(() -> {
             try {
-                emit("status", "Starting HTTP server on 8080...");
+                emit("status", "Starting HTTP server on port 8080...");
                 server = new ApiServer(8080);
                 server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
-                emit("status", "HTTP OK: localhost:8080");
+                emit("status", "HTTP OK: Localhost:8080");
 
-                emit("status", "Starting tunnel...");
+                emit("status", "Starting Cloudflare Tunnel...");
                 tunnel = new CloudflaredTunnel();
                 tunnel.start(this, 8080,
                         s -> emit("status", s),
@@ -40,6 +48,14 @@ public class ApiService extends Service {
             }
         }).start();
         return START_STICKY;
+    }
+
+    private void stopEverything() {
+        if (server != null) { server.stop(); server = null; }
+        if (tunnel != null) { tunnel.stop(); tunnel = null; }
+        emit("stopped", "Service stopped");
+        stopForeground(true);
+        stopSelf();
     }
 
     private void emit(String type, String msg) {

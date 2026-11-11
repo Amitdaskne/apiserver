@@ -10,7 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
     private TextView urlText, statusText;
-    private Button startBtn, copyBtn;
+    private Button startBtn, stopBtn, copyBtn;
     private String currentUrl;
 
     private final BroadcastReceiver recv = new BroadcastReceiver() {
@@ -19,13 +19,15 @@ public class MainActivity extends AppCompatActivity {
             String msg = i.getStringExtra("message");
             if ("url".equals(type)) {
                 currentUrl = msg;
-                urlText.setText(msg);
+                urlText.setText(">" + msg);
                 copyBtn.setEnabled(true);
-                append("✅ URL READY");
+                append("> URL READY: " + msg);
             } else if ("error".equals(type)) {
-                append("❌ " + msg);
+                append("> [ERR] " + msg);
+            } else if ("stopped".equals(type)) {
+                resetUI();
             } else {
-                append(msg);
+                append("> " + msg);
             }
         }
     };
@@ -40,11 +42,11 @@ public class MainActivity extends AppCompatActivity {
         urlText = findViewById(R.id.urlText);
         statusText = findViewById(R.id.statusText);
         startBtn = findViewById(R.id.startBtn);
+        stopBtn = findViewById(R.id.stopBtn);
         copyBtn = findViewById(R.id.copyBtn);
 
         if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         }
 
@@ -53,23 +55,40 @@ public class MainActivity extends AppCompatActivity {
         else registerReceiver(recv, f);
 
         startBtn.setOnClickListener(v -> {
-            urlText.setText("Waiting...");
+            urlText.setText("> INITIALIZING...");
             startBtn.setEnabled(false);
+            stopBtn.setEnabled(true);
             copyBtn.setEnabled(false);
             statusText.setText("");
-            append("Starting service...");
+            append("Booting API Server...");
             Intent s = new Intent(this, ApiService.class);
             if (Build.VERSION.SDK_INT >= 26) startForegroundService(s);
             else startService(s);
+        });
+
+        stopBtn.setOnClickListener(v -> {
+            append("Shutting down...");
+            Intent s = new Intent(this, ApiService.class);
+            s.setAction("STOP");
+            startService(s);
         });
 
         copyBtn.setOnClickListener(v -> {
             if (currentUrl != null) {
                 ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                 cm.setPrimaryClip(ClipData.newPlainText("URL", currentUrl));
-                Toast.makeText(this, "Copied!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Copied to clipboard!", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void resetUI() {
+        urlText.setText("OFFLINE. Awaiting initialization...");
+        startBtn.setEnabled(true);
+        stopBtn.setEnabled(false);
+        copyBtn.setEnabled(false);
+        currentUrl = null;
+        append("System offline.");
     }
 
     @Override protected void onDestroy() {

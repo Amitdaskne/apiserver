@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar"/>
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/cyber_bg</item>
+        <item name="colorPrimary">@color/cyber_cyan</item>
+        <item name="colorAccent">@color/cyber_pink</item>
+        <item name="android:textColorPrimary">@color/cyber_cyan</item>
+    </style>
 </resources>
