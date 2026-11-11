@@ -22,7 +22,7 @@ public class ApiService extends Service {
 
         createChannel();
         Notification n = new NotificationCompat.Builder(this, "api")
-                .setContentTitle("API Server Active")
+                .setContentTitle("Video API Active")
                 .setContentText("Tunnel is running...")
                 .setSmallIcon(android.R.drawable.stat_sys_upload)
                 .setOngoing(true)
@@ -33,8 +33,8 @@ public class ApiService extends Service {
 
         new Thread(() -> {
             try {
-                emit("status", "Starting HTTP server on port 8080...");
-                server = new ApiServer(8080);
+                emit("status", "Starting HTTP server on 8080...");
+                server = new ApiServer(8080, this); // Naya context wala server
                 server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
                 emit("status", "HTTP OK: Localhost:8080");
 
@@ -68,8 +68,7 @@ public class ApiService extends Service {
 
     private void createChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel ch = new NotificationChannel("api", "API Server",
-                    NotificationManager.IMPORTANCE_LOW);
+            NotificationChannel ch = new NotificationChannel("api", "API Server", NotificationManager.IMPORTANCE_LOW);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
         }
     }
