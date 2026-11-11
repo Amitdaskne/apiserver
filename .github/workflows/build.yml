@@ -1,0 +1,39 @@
+name: Build APK
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Fetch cloudflared ARM64 binary
+        run: |
+          mkdir -p app/src/main/assets
+          curl -L -o app/src/main/assets/cloudflared \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
+          ls -la app/src/main/assets/cloudflared
+          file app/src/main/assets/cloudflared
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.2
+
+      - name: Build debug APK
+        run: gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apiserver-debug
+          path: app/build/outputs/apk/debug/app-debug.apk

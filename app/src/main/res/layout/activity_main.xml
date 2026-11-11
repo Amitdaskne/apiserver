@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="API Server + Cloudflare Tunnel"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"/>
+
+    <Button
+        android:id="@+id/startBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="▶  Start API + Tunnel"
+        android:textSize="16sp"
+        android:padding="16dp"/>
+
+    <TextView
+        android:id="@+id/urlText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:layout_marginTop="32dp"
+        android:text="URL yahan aayega..."
+        android:textIsSelectable="true"
+        android:textSize="14sp"
+        android:background="#F0F0F0"/>
+
+    <Button
+        android:id="@+id/copyBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📋  Copy URL"
+        android:enabled="false"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="HTML se: fetch('URL/api/notes')"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:layout_marginTop="24dp"
+        android:fontFamily="monospace"/>
+</LinearLayout>
