@@ -1,5 +1,4 @@
 name: Build APK
-
 on:
   push:
     branches: [ main, master ]
@@ -17,20 +16,23 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Fetch cloudflared ARM64 binary
+      - name: Install Gradle 8.2
         run: |
-          mkdir -p app/src/main/assets
-          curl -L -o app/src/main/assets/cloudflared \
+          cd $HOME
+          wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip
+          unzip -q gradle-8.2-bin.zip
+          echo "$HOME/gradle-8.2/bin" >> $GITHUB_PATH
+
+      - name: Fetch cloudflared to jniLibs
+        run: |
+          mkdir -p app/src/main/jniLibs/arm64-v8a
+          curl -L -o app/src/main/jniLibs/arm64-v8a/libcloudflared.so \
             https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
-          ls -la app/src/main/assets/cloudflared
-          file app/src/main/assets/cloudflared
+          chmod +x app/src/main/jniLibs/arm64-v8a/libcloudflared.so
+          ls -la app/src/main/jniLibs/arm64-v8a/
+          file app/src/main/jniLibs/arm64-v8a/libcloudflared.so
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.2
-
-      - name: Build debug APK
+      - name: Build APK
         run: gradle assembleDebug
 
       - name: Upload APK

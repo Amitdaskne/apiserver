@@ -1,41 +1,46 @@
 package com.example.apiserver;
 
 import android.Manifest;
-import android.content.BroadcastReceiver;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.*;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
-    private TextView urlText;
+    private TextView urlText, statusText;
     private Button startBtn, copyBtn;
     private String currentUrl;
 
-    private final BroadcastReceiver receiver = new BroadcastReceiver() {
+    private final BroadcastReceiver recv = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
-            currentUrl = i.getStringExtra("url");
-            urlText.setText(currentUrl);
-            copyBtn.setEnabled(true);
+            String type = i.getStringExtra("type");
+            String msg = i.getStringExtra("message");
+            if ("url".equals(type)) {
+                currentUrl = msg;
+                urlText.setText(msg);
+                copyBtn.setEnabled(true);
+                append("✅ URL READY");
+            } else if ("error".equals(type)) {
+                append("❌ " + msg);
+            } else {
+                append(msg);
+            }
         }
     };
+
+    private void append(String s) { statusText.append(s + "\n"); }
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
 
-        urlText  = findViewById(R.id.urlText);
+        urlText = findViewById(R.id.urlText);
+        statusText = findViewById(R.id.statusText);
         startBtn = findViewById(R.id.startBtn);
-        copyBtn  = findViewById(R.id.copyBtn);
+        copyBtn = findViewById(R.id.copyBtn);
 
         if (Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
@@ -43,34 +48,32 @@ public class MainActivity extends AppCompatActivity {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         }
 
-        IntentFilter filter = new IntentFilter(ApiService.ACTION_URL);
-        if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(receiver, filter);
-        }
+        IntentFilter f = new IntentFilter(ApiService.ACTION_EVENT);
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(recv, f, Context.RECEIVER_NOT_EXPORTED);
+        else registerReceiver(recv, f);
 
         startBtn.setOnClickListener(v -> {
-            urlText.setText("Starting server + tunnel...\n(5-10 sec lagenge)");
+            urlText.setText("Waiting...");
             startBtn.setEnabled(false);
             copyBtn.setEnabled(false);
-            Intent svc = new Intent(this, ApiService.class);
-            if (Build.VERSION.SDK_INT >= 26) startForegroundService(svc);
-            else startService(svc);
+            statusText.setText("");
+            append("Starting service...");
+            Intent s = new Intent(this, ApiService.class);
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(s);
+            else startService(s);
         });
 
         copyBtn.setOnClickListener(v -> {
             if (currentUrl != null) {
                 ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                cm.setPrimaryClip(ClipData.newPlainText("API URL", currentUrl));
-                Toast.makeText(this, "URL copied!", Toast.LENGTH_SHORT).show();
+                cm.setPrimaryClip(ClipData.newPlainText("URL", currentUrl));
+                Toast.makeText(this, "Copied!", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    @Override
-    protected void onDestroy() {
-        try { unregisterReceiver(receiver); } catch (Exception ignored) {}
+    @Override protected void onDestroy() {
+        try { unregisterReceiver(recv); } catch (Exception ignored) {}
         super.onDestroy();
     }
 }

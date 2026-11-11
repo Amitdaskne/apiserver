@@ -5,3 +5,4 @@ app/build/
 *.apk
 *.iml
 .idea/
+app/src/main/jniLibs/
