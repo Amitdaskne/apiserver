@@ -3,12 +3,22 @@ package com.example.apiserver;
 import android.content.Context;
 import android.util.Log;
 import java.io.*;
+import java.lang.reflect.Method;
 import java.util.function.Consumer;
 import java.util.regex.*;
 
 public class CloudflaredTunnel {
     private static final String TAG = "Cloudflared";
     private Process process;
+
+    private static long pidOf(Process p) {
+        try {
+            Method m = Process.class.getMethod("pid");
+            return (long) m.invoke(p);
+        } catch (Exception e) {
+            return -1L;
+        }
+    }
 
     public void start(Context ctx, int port, Consumer<String> onStatus, Consumer<String> onUrl) {
         new Thread(() -> {
@@ -51,7 +61,7 @@ public class CloudflaredTunnel {
 
                 onStatus.accept("Launching cloudflared...");
                 process = pb.start();
-                onStatus.accept("PID: " + process.pid());
+                onStatus.accept("PID: " + pidOf(process));
 
                 BufferedReader r = new BufferedReader(new InputStreamReader(process.getInputStream()));
                 Pattern p = Pattern.compile("https://[a-z0-9-]+\\.trycloudflare\\.com");
