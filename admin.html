@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMIT - Admin Upload</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0A0A0F; color: #00F0FF; font-family: 'VT323', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+        .scanline { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2)); background-size: 100% 4px; pointer-events: none; z-index: 10; }
+        .container { background: #141420; padding: 30px; border-radius: 5px; border: 2px solid #00F0FF; box-shadow: 0 0 20px #00F0FF, inset 0 0 10px #00F0FF; width: 90%; max-width: 400px; position: relative; z-index: 20; animation: boot 1s ease-out; }
+        @keyframes boot { 0% { opacity: 0; transform: scaleY(0); } 100% { opacity: 1; transform: scaleY(1); } }
+        h2 { text-align: center; color: #FF0055; text-transform: uppercase; letter-spacing: 2px; font-size: 32px; margin-top: 0; text-shadow: 0 0 10px #FF0055; }
+        input[type="file"] { display: none; }
+        .custom-file-upload { border: 2px dashed #00F0FF; display: inline-block; padding: 20px; cursor: pointer; text-align: center; width: 100%; box-sizing: border-box; margin-bottom: 20px; transition: 0.3s; font-size: 20px; }
+        .custom-file-upload:hover { background: #1f1f33; box-shadow: 0 0 15px #00F0FF; }
+        button { width: 100%; padding: 15px; background: #00F0FF; color: #0A0A0F; border: none; font-family: 'VT323', monospace; font-size: 24px; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        button:hover { background: #FF0055; color: #fff; box-shadow: 0 0 15px #FF0055; }
+        #status { margin-top: 15px; text-align: center; color: #39FF14; font-size: 20px; }
+        .link-loader { display: flex; gap: 10px; margin-bottom: 20px; }
+        .link-loader input { flex: 1; padding: 10px; background: #0A0A0F; border: 1px solid #00F0FF; color: #39FF14; font-family: 'VT323', monospace; font-size: 18px; outline: none; }
+        .link-loader button { width: auto; padding: 0 15px; font-size: 18px; background: #00F0FF; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+    <div class="container">
+        <h2>Video Uplink</h2>
+        
+        <!-- link.amit Loader -->
+        <div class="link-loader" id="loaderSection">
+            <label for="amtFile" style="background:#00F0FF; color:#000; padding:10px; cursor:pointer; font-size:20px; border:none;">LOAD link.amit</label>
+            <input type="file" id="amtFile" accept=".amit" onchange="loadAmt(event)" />
+            <button onclick="manualUrl()">MANUAL</button>
+        </div>
+        
+        <div class="hidden" id="uploadSection">
+            <label for="videoFile" class="custom-file-upload" id="fileLabel">
+                [ SELECT VIDEO FILE ]
+            </label>
+            <input id="videoFile" type="file" accept="video/*" onchange="updateLabel()" />
+            <button onclick="uploadVideo()">[ UPLOAD TO SERVER ]</button>
+            <div id="status"></div>
+        </div>
+    </div>
+    <script>
+        let API_URL = "";
+
+        function loadAmt(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                API_URL = evt.target.result.trim();
+                document.getElementById('loaderSection').classList.add('hidden');
+                document.getElementById('uploadSection').classList.remove('hidden');
+            };
+            reader.readAsText(file);
+        }
+
+        function manualUrl() {
+            const url = prompt("Enter Cloudflare URL:");
+            if(url) {
+                API_URL = url.trim();
+                document.getElementById('loaderSection').classList.add('hidden');
+                document.getElementById('uploadSection').classList.remove('hidden');
+            }
+        }
+
+        function updateLabel() {
+            const file = document.getElementById('videoFile').files[0];
+            if (file) document.getElementById('fileLabel').innerText = "[ " + file.name + " ]";
+        }
+
+        async function uploadVideo() {
+            const fileInput = document.getElementById('videoFile');
+            const status = document.getElementById('status');
+            
+            if (fileInput.files.length === 0) {
+                status.style.color = "#FF0055";
+                status.innerText = "ERROR: No file selected!";
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("video", fileInput.files[0]);
+
+            status.style.color = "#00F0FF";
+            status.innerText = "UPLOADING...";
+
+            try {
+                const res = await fetch(API_URL + "/api/upload", { method: "POST", body: formData });
+                const data = await res.json();
+                if (res.ok) {
+                    status.style.color = "#39FF14";
+                    status.innerText = "✅ UPLOAD SUCCESSFUL!";
+                } else { throw new Error(data.error || "Failed"); }
+            } catch (err) {
+                status.style.color = "#FF0055";
+                status.innerText = "❌ FAILED: " + err.message;
+            }
+        }
+    </script>
+</body>
+</html>

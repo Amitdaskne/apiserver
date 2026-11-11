@@ -4,12 +4,18 @@ import android.Manifest;
 import android.content.*;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import android.view.View;
-import android.view.animation.AnimationUtils;
+import android.view.animation.OvershootInterpolator;
 import android.widget.*;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.dynamicanimation.animation.SpringAnimation;
+import androidx.dynamicanimation.animation.SpringForce;
 import java.io.File;
 import java.io.FileWriter;
 
@@ -26,8 +32,13 @@ public class MainActivity extends AppCompatActivity {
                 currentUrl = msg;
                 urlText.setText("> " + msg);
                 copyBtn.setEnabled(true);
+                
+                // Premium Slide-up Animation for URL
+                urlText.setAlpha(0f);
+                urlText.setTranslationY(50f);
+                urlText.animate().alpha(1f).translationY(0f).setDuration(600).start();
+
                 append("> URL READY: " + msg);
-                // Automatically export file on URL ready
                 exportLinkAmtFile(msg);
             } else if ("error".equals(type)) {
                 append("> [ERR] " + msg);
@@ -64,24 +75,21 @@ public class MainActivity extends AppCompatActivity {
             copyBtn.setTypeface(tf);
         } catch (Exception ignored) {}
 
-        // Continuous Pulse Animation for Branding
-        brandingText.startAnimation(AnimationUtils.loadAnimation(this, android.R.anim.fade_in));
-
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
-        }
+        checkPermissions();
 
         IntentFilter f = new IntentFilter(ApiService.ACTION_EVENT);
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(recv, f, Context.RECEIVER_NOT_EXPORTED);
         else registerReceiver(recv, f);
 
         startBtn.setOnClickListener(v -> {
-            // Animation: Shrink Start, Fade Out
-            startBtn.animate().scaleX(0f).scaleY(0f).alpha(0f).setDuration(300).withEndAction(() -> {
-                startBtn.setVisibility(View.GONE);
-                stopBtn.setVisibility(View.VISIBLE);
-                stopBtn.setScaleX(0f); stopBtn.setScaleY(0f); stopBtn.setAlpha(0f);
-                stopBtn.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(300).start();
+            // Premium Button Animation
+            startBtn.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).withEndAction(() -> {
+                startBtn.animate().scaleX(0f).scaleY(0f).alpha(0f).setDuration(300).withEndAction(() -> {
+                    startBtn.setVisibility(View.GONE);
+                    stopBtn.setVisibility(View.VISIBLE);
+                    stopBtn.setScaleX(0f); stopBtn.setScaleY(0f); stopBtn.setAlpha(0f);
+                    stopBtn.animate().scaleX(1f).scaleY(1f).alpha(1f).setInterpolator(new OvershootInterpolator()).setDuration(500).start();
+                }).start();
             }).start();
 
             urlText.setText("> BOOTING...");
@@ -95,12 +103,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         stopBtn.setOnClickListener(v -> {
-            // Animation: Shrink Stop, Fade Out
-            stopBtn.animate().scaleX(0f).scaleY(0f).alpha(0f).setDuration(300).withEndAction(() -> {
-                stopBtn.setVisibility(View.GONE);
-                startBtn.setVisibility(View.VISIBLE);
-                startBtn.setScaleX(0f); startBtn.setScaleY(0f); startBtn.setAlpha(0f);
-                startBtn.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(300).start();
+            stopBtn.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).withEndAction(() -> {
+                stopBtn.animate().scaleX(0f).scaleY(0f).alpha(0f).setDuration(300).withEndAction(() -> {
+                    stopBtn.setVisibility(View.GONE);
+                    startBtn.setVisibility(View.VISIBLE);
+                    startBtn.setScaleX(0f); startBtn.setScaleY(0f); startBtn.setAlpha(0f);
+                    startBtn.animate().scaleX(1f).scaleY(1f).alpha(1f).setInterpolator(new OvershootInterpolator()).setDuration(500).start();
+                }).start();
             }).start();
 
             append("Shutting down...");
@@ -118,15 +127,46 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void checkPermissions() {
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
+        }
+        if (Build.VERSION.SDK_INT >= 30) {
+            if (!Environment.isExternalStorageManager()) {
+                new AlertDialog.Builder(this)
+                    .setTitle("Storage Permission")
+                    .setMessage("AMITLINK folder me link save karne ke liye 'All Files Access' permission chahiye.")
+                    .setPositiveButton("Allow", (d, w) -> {
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                        intent.setData(Uri.parse("package:" + getPackageName()));
+                        startActivity(intent);
+                    }).show();
+            }
+        } else {
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 2);
+            }
+        }
+    }
+
     private void exportLinkAmtFile(String url) {
         try {
-            File file = new File(getExternalFilesDir(null), "link.amit");
+            // AMITLINK Folder create karo device storage me
+            File dir = new File(Environment.getExternalStorageDirectory(), "AMITLINK");
+            if (!dir.exists()) dir.mkdirs();
+
+            // Purani file delete karo
+            File file = new File(dir, "link.amit");
+            if (file.exists()) file.delete();
+
+            // Nayi file save karo
             FileWriter fw = new FileWriter(file);
             fw.write(url);
             fw.close();
-            Toast.makeText(this, "Saved: link.amit\nPath: Android/data/" + getPackageName() + "/files/", Toast.LENGTH_LONG).show();
+            
+            Toast.makeText(this, "Saved: AMITLINK/link.amit", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
-            Toast.makeText(this, "File save failed", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Failed to save AMITLINK file", Toast.LENGTH_SHORT).show();
         }
     }
 
